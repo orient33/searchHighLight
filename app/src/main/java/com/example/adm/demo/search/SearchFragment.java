@@ -3,7 +3,10 @@ package com.example.adm.demo.search;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.example.adm.demo.R;
 
@@ -33,8 +37,9 @@ public class SearchFragment extends Fragment {
     EditText editText;
 
     @BindView(R.id.listView)
-    private ListView listView;
+    ListView listView;
     private SearchPresenter presenter;
+    private Adapter adapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -46,10 +51,11 @@ public class SearchFragment extends Fragment {
         ButterKnife.bind(this, view);
         presenter = new SearchPresenter(this);
         editText.addTextChangedListener(watcher);
+        listView.setAdapter(adapter = new Adapter());
     }
 
     public void onSearchComplete(String key, List<Contacts> data) {
-
+        adapter.setData(data);
     }
 
     final TextWatcher watcher = new TextWatcher() {
@@ -70,12 +76,13 @@ public class SearchFragment extends Fragment {
         }
     };
 
-    class Adapter extends BaseAdapter {
+    private class Adapter extends BaseAdapter {
         final List<Contacts> data = new ArrayList<>();
 
         void setData(List<Contacts> d) {
             data.clear();
-            data.addAll(d);
+            if (d != null && d.size() > 0)
+                data.addAll(d);
             notifyDataSetChanged();
         }
 
@@ -85,18 +92,41 @@ public class SearchFragment extends Fragment {
         }
 
         @Override
-        public Object getItem(int position) {
-            return null;
+        public Contacts getItem(int position) {
+            return data.get(position);
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            return null;
+            TextView tv;
+            if (convertView == null) {
+                tv = new TextView(getActivity());
+                tv.setTextSize(20);
+            } else {
+                tv = (TextView) convertView;
+            }
+            Contacts item = getItem(position);
+            if (item.mMatchStart != -1 && item.mMatchEnd != -1) {
+                if (item.mMatchStart < Contacts.MATCH_NAME_BASE) {
+                    SpannableString number = new SpannableString(item.getNumber());
+                    number.setSpan(new ForegroundColorSpan(0xffff0000), item.mMatchStart, item.mMatchEnd, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    tv.setText(number);
+                    tv.append("-" + item.getName());
+                } else {//
+                    SpannableString name = new SpannableString(item.getName());
+                    name.setSpan(new ForegroundColorSpan(0xffff8888), item.mMatchStart - Contacts.MATCH_NAME_BASE, item.mMatchEnd - Contacts.MATCH_NAME_BASE, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    tv.setText(item.getNumber() + "-");
+                    tv.append(name);
+                }
+            } else {
+                tv.setText(item.getNumber() + " - " + item.getName());
+            }
+            return tv;
         }
 
         @Override
         public int getCount() {
-            return 0;
+            return data.size();
         }
     }
 }

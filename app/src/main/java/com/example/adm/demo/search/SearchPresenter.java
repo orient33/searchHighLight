@@ -39,13 +39,12 @@ public class SearchPresenter implements Filterable {
 
     private class ContactsFilter extends Filter {
         private final List<Contacts> mContactsList1 = new ArrayList<>();
-        private List<Contacts> mContactsList2 = new ArrayList<>();
 
         ContactsFilter() {
 //            mContactsList1 = BTStorage.getInstance().getCallLog(BTGlobal.getConnectedDevice_call());
 //            mContactsList2 = BTStorage.getInstance().getPhoneBook(BTGlobal.getConnectedDevice_call());
             if (mContactsList1.size() == 0)
-                fakeData(mContactsList1, mContactsList2);
+                fakeData(mContactsList1);
         }
 
         @Override
@@ -56,8 +55,7 @@ public class SearchPresenter implements Filterable {
                 return results;
             }
 
-            if ((mContactsList1 == null || mContactsList1.size() == 0)
-                    && (mContactsList2 == null || mContactsList2.size() == 0)) {
+            if ((mContactsList1 == null || mContactsList1.size() == 0)) {
                 return results;
             }
 
@@ -66,7 +64,6 @@ public class SearchPresenter implements Filterable {
             List<Contacts> filteredValue = new ArrayList<>();
 
             List<Contacts> numberMatchList = new ArrayList<>();
-            List<Contacts> markMatchTotalList = new ArrayList<>();
             List<Contacts> markMatchPartList = new ArrayList<>();
 
             // 查找通话记录
@@ -78,12 +75,16 @@ public class SearchPresenter implements Filterable {
                     number = PhoneNumberUtils.process(number);
 
                     if (number != null && number.contains(prefixString)) {
+                        contacts.mMatchStart = number.indexOf(prefixString);
+                        contacts.mMatchEnd = prefixString.length() + contacts.mMatchStart;
                         if (!isListContain(numberMatchList, contacts))
                             numberMatchList.add(contacts);
-                    } else if (mark != null && mark.equals(prefixString)) {
-                        if (!isListContain(markMatchTotalList, contacts))
-                            markMatchTotalList.add(contacts); // 全部匹配
+//                    } else if (mark != null && mark.equals(prefixString)) {
+//                        if (!isListContain(markMatchTotalList, contacts))
+//                            markMatchTotalList.add(contacts); // 全部匹配--这个没必要
                     } else if (mark != null && mark.contains(prefixString)) {
+                        contacts.mMatchStart = mark.indexOf(prefixString) + Contacts.MATCH_NAME_BASE;
+                        contacts.mMatchEnd = contacts.mMatchStart + prefixString.length();
                         if (!isListContain(markMatchPartList, contacts))
                             markMatchPartList.add(contacts); // 部分匹配
                     }
@@ -91,34 +92,6 @@ public class SearchPresenter implements Filterable {
             }
 
             filteredValue.addAll(numberMatchList);
-            filteredValue.addAll(markMatchTotalList);
-            filteredValue.addAll(markMatchPartList);
-
-            numberMatchList.clear();
-            markMatchTotalList.clear();
-            markMatchPartList.clear();
-            if (mContactsList2 != null) {
-                // 查找联系人
-                for (Contacts contacts : mContactsList2) {
-                    if (contacts != null) {
-                        String number = contacts.getNumber();
-                        String mark = contacts.getMark();
-
-                        number = PhoneNumberUtils.process(number);
-
-                        if (number != null && number.contains(prefixString)) {
-                            numberMatchList.add(contacts);
-                        } else if (mark != null && mark.equals(prefixString)) {
-                            markMatchTotalList.add(contacts); // 全部匹配
-                        } else if (mark != null && mark.contains(prefixString)) {
-                            markMatchPartList.add(contacts); // 部分匹配
-                        }
-                    }
-                }
-            }
-
-            filteredValue.addAll(numberMatchList);
-            filteredValue.addAll(markMatchTotalList);
             filteredValue.addAll(markMatchPartList);
 
             results.values = filteredValue;
@@ -136,13 +109,14 @@ public class SearchPresenter implements Filterable {
         }
     }
 
-    private static void fakeData(List<Contacts> call, List<Contacts> contacts) {
+    private static void fakeData(List<Contacts> call) {
         Contacts contact = Contacts.getFake1();
         call.add(contact);
         for (int i = 0; i < 10; ++i) {
             Contacts other = contact.cloneSame();
             other.setName(other.getName() + i);
             other.setNumber(other.getNumber() + i);
+            other.setMark(other.getMark() + i);
             call.add(other);
         }
     }

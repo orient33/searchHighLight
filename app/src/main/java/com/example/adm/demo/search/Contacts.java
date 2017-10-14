@@ -20,6 +20,9 @@ public class Contacts implements Parcelable, Comparable<Contacts> {
     private String mCallDatetime;
     private boolean isToday;
     private int mNum = 1;
+    //搜索的匹配 start 和 end 索引
+    public int mMatchStart = -1, mMatchEnd = -1;
+    public static int MATCH_NAME_BASE = 1000;//如果匹配的name/mark字段 那么 start基数为1000.
 
     public String getIndex() {
         return mIndex;
@@ -171,14 +174,15 @@ public class Contacts implements Parcelable, Comparable<Contacts> {
         }
     };
 
-    public static Contacts getFake1(){
+    public static Contacts getFake1() {
         Contacts one = new Contacts();
         one.mIndex = "0";
         one.mName = "东方朔";
         one.mNumber = "18610650000";
-        one.mMark = "DFS";
+        one.mMark = "337";//这个是 九宫格 拼音时候的数字排序
         return one;
     }
+
     public Contacts cloneSame() {
         Contacts other = new Contacts();
         other.mIndex = mIndex;
